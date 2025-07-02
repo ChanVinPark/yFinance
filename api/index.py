@@ -25,7 +25,7 @@ COMPANY_TICKER_MAP = {
     "Tesla": "TSLA"
 }
 
-@app.get("/finance")
+@app.get("/y-finance")
 async def get_financials(company: str = Query(..., description="Company name (EN or KR)")):
     ticker = COMPANY_TICKER_MAP.get(company)
     if not ticker:
