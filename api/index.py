@@ -10,31 +10,33 @@ async def get_financials(ticker: str = Query(..., description="Ticker symbol (e.
     try:
         stock = yf.Ticker(ticker)
         info = stock.info
-        market_cap = info.get("marketCap", "N/A")
-        short_name = info.get("shortName", "N/A")
-
-        # Get historical financials (income statement)
         financials = stock.financials
-        if financials.empty or "EBITDA" not in financials.index:
-            ebitda_2024 = "N/A"
-        else:
-            ebitda_series = financials.loc["EBITDA"]
-            # Try to get 2024 specifically
-            ebitda_2024 = None
-            for col in ebitda_series.index:
-                if "2024" in str(col):
-                    ebitda_2024 = ebitda_series[col]
-                    break
-            # If 2024 not found, fallback to latest
-            if ebitda_2024 is None:
-                ebitda_2024 = ebitda_series.iloc[0]
 
-        return {
+        result = {
             "ticker": ticker,
-            "short_name": short_name,
-            "market_cap": market_cap,
-            "ebitda_2024": None if pd.isna(ebitda_2024) else int(ebitda_2024)
+            "short_name": info.get("shortName", "N/A"),
+            "market_cap": info.get("marketCap", "N/A"),
+            "fiscal_year": "2024"
         }
+
+        # Helper function to extract 2024 value or fallback to latest
+        def extract_metric(df, metric_name):
+            if df.empty or metric_name not in df.index:
+                return "N/A"
+            series = df.loc[metric_name]
+            for col in series.index:
+                if "2024" in str(col):
+                    return int(series[col]) if pd.notna(series[col]) else "N/A"
+            # fallback: return most recent if 2024 not found
+            return int(series.iloc[0]) if pd.notna(series.iloc[0]) else "N/A"
+
+        result["revenue_2024"] = extract_metric(financials, "Total Revenue")
+        result["gross_profit_2024"] = extract_metric(financials, "Gross Profit")
+        result["operating_income_2024"] = extract_metric(financials, "Operating Income")
+        result["ebitda_2024"] = extract_metric(financials, "EBITDA")
+        result["net_income_2024"] = extract_metric(financials, "Net Income Applicable To Common Shares")
+
+        return result
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
