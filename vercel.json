@@ -8,7 +8,7 @@
   ],
   "routes": [
     {
-      "src": "/finance",
+      "src": "/y-finance",
       "dest": "api/index.py"
     }
   ]
